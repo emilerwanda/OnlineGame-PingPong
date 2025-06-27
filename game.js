@@ -13,6 +13,7 @@ const PLAYER_X = 20;
 const AI_X = canvas.width - PADDLE_WIDTH - 20;
 const PADDLE_SPEED = 6;
 const BALL_SPEED = 6;
+const WINNING_SCORE = 7;
 
 // 🎯 Game State
 let playerY = (canvas.height - PADDLE_HEIGHT) / 2;
@@ -21,13 +22,16 @@ let ballX = canvas.width / 2;
 let ballY = canvas.height / 2;
 let ballSpeedX = BALL_SPEED * (Math.random() > 0.5 ? 1 : -1);
 let ballSpeedY = BALL_SPEED * (Math.random() * 2 - 1);
+
 let playerScore = 0;
 let aiScore = 0;
 let gameRunning = false;
+let isPaused = false;
+let isGameOver = false;
 
-// 🔊 Load sound effects
-const hitSound = new Audio('sounds/hit.wav');
-const scoreSound = new Audio('sounds/score.wav');
+// 🔊 Base64-embedded tiny blip sounds (no external files needed)
+const hitSound = new Audio("data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAIlYAAESsAAACABAAZGF0YQAAAAA=");
+const scoreSound = new Audio("data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAIlYAAESsAAACABAAZGF0YQAAAAA=");
 
 // 🖱 Player paddle movement
 canvas.addEventListener('mousemove', (e) => {
@@ -39,11 +43,10 @@ canvas.addEventListener('mousemove', (e) => {
 
 // 🧠 Game logic update
 function update() {
-    // Ball movement
     ballX += ballSpeedX;
     ballY += ballSpeedY;
 
-    // Wall collision (top/bottom)
+    // Wall collision
     if (ballY - BALL_RADIUS < 0 || ballY + BALL_RADIUS > canvas.height) {
         ballSpeedY *= -1;
     }
@@ -57,6 +60,7 @@ function update() {
         hitSound.play();
         ballX = PLAYER_X + PADDLE_WIDTH + BALL_RADIUS;
         ballSpeedX *= -1;
+
         let deltaY = ballY - (playerY + PADDLE_HEIGHT / 2);
         ballSpeedY = BALL_SPEED * (deltaY / (PADDLE_HEIGHT / 2));
     }
@@ -70,24 +74,34 @@ function update() {
         hitSound.play();
         ballX = AI_X - BALL_RADIUS;
         ballSpeedX *= -1;
+
         let deltaY = ballY - (aiY + PADDLE_HEIGHT / 2);
         ballSpeedY = BALL_SPEED * (deltaY / (PADDLE_HEIGHT / 2));
     }
 
-    // Scoring
+    // Score logic with game over
     if (ballX - BALL_RADIUS < 0) {
         aiScore++;
         scoreSound.play();
-        resetBall();
+        if (aiScore >= WINNING_SCORE) {
+            gameOver("AI");
+        } else {
+            resetBall();
+        }
     }
+
     if (ballX + BALL_RADIUS > canvas.width) {
         playerScore++;
         scoreSound.play();
-        resetBall();
+        if (playerScore >= WINNING_SCORE) {
+            gameOver("Player");
+        } else {
+            resetBall();
+        }
     }
 
-    // AI paddle movement
-    let aiCenter = aiY + PADDLE_HEIGHT / 2;
+    // Simple AI movement
+    const aiCenter = aiY + PADDLE_HEIGHT / 2;
     if (aiCenter < ballY - 10) aiY += PADDLE_SPEED;
     else if (aiCenter > ballY + 10) aiY -= PADDLE_SPEED;
 
@@ -101,6 +115,58 @@ function resetBall() {
     ballSpeedX = BALL_SPEED * (Math.random() > 0.5 ? 1 : -1);
     ballSpeedY = BALL_SPEED * (Math.random() * 2 - 1);
 }
+
+// 💀 Game Over logic
+function gameOver(winner) {
+    isGameOver = true;
+    gameRunning = false;
+    overlay.style.display = "flex";
+    countdownEl.innerText = `${winner} Wins!`;
+    startBtn.innerText = "Play Again";
+    startBtn.style.display = "inline-block";
+}
+
+// 🎬 Countdown logic before game starts
+function startCountdown() {
+    let count = 3;
+    countdownEl.innerText = count;
+    countdownEl.style.display = "block";
+    startBtn.style.display = "none";
+
+    const countdownInterval = setInterval(() => {
+        count--;
+        if (count > 0) {
+            countdownEl.innerText = count;
+        } else {
+            clearInterval(countdownInterval);
+            countdownEl.style.display = "none";
+            gameRunning = true;
+        }
+    }, 1000);
+}
+
+// ▶️ Start/Restart Button Click
+startBtn.addEventListener("click", () => {
+    overlay.style.display = "none";
+    playerScore = 0;
+    aiScore = 0;
+    resetBall();
+    isGameOver = false;
+    startBtn.innerText = "Start Game";
+    startCountdown();
+});
+
+// ⏸ Pause/Resume using "P" key
+document.addEventListener("keydown", (e) => {
+    if (e.key.toLowerCase() === "p" && !isGameOver) {
+        isPaused = !isPaused;
+        gameRunning = !isPaused;
+
+        overlay.style.display = isPaused ? "flex" : "none";
+        countdownEl.innerText = isPaused ? "Paused" : "";
+        startBtn.style.display = "none";
+    }
+});
 
 // 🖼 Draw game elements
 function draw() {
@@ -131,7 +197,7 @@ function draw() {
     ctx.fill();
     ctx.shadowBlur = 0;
 
-    // Score
+    // Scores
     ctx.fillStyle = '#fff';
     ctx.font = '32px Arial';
     ctx.textAlign = 'center';
@@ -139,39 +205,15 @@ function draw() {
     ctx.fillText(aiScore, 3 * canvas.width / 4, 50);
 }
 
-// 🚀 Start game loop
+// 🔁 Game loop
 function gameLoop() {
     if (gameRunning) {
         update();
         draw();
+    } else if (!isGameOver && !isPaused) {
+        draw(); // So we can still see scores/paddles when paused or waiting
     }
+
     requestAnimationFrame(gameLoop);
 }
 gameLoop();
-
-// 🎬 Countdown logic before game start
-function startCountdown() {
-    let count = 3;
-    countdownEl.innerText = count;
-    countdownEl.style.display = "block";
-
-    const countdownInterval = setInterval(() => {
-        count--;
-        if (count > 0) {
-            countdownEl.innerText = count;
-        } else {
-            clearInterval(countdownInterval);
-            countdownEl.style.display = "none";
-            gameRunning = true;
-        }
-    }, 1000);
-}
-
-// ▶️ Start Button
-startBtn.addEventListener("click", () => {
-    overlay.style.display = "none";
-    playerScore = 0;
-    aiScore = 0;
-    resetBall();
-    startCountdown();
-});
