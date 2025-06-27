@@ -1,22 +1,63 @@
-body {
-    background: #222;
-    color: #fff;
-    font-family: Arial, sans-serif;
-    text-align: center;
+/* General Reset */
+* {
     margin: 0;
     padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background: linear-gradient(145deg, #1a1a1a, #222);
+    color: #fff;
+    font-family: 'Press Start 2P', monospace;
+    text-align: center;
+    overflow: hidden;
+    padding: 20px;
+}
+
+h1 {
+    font-size: 1.8rem;
+    color: #00ffcc;
+    text-shadow: 0 0 10px #00ffcc, 0 0 20px #00ffcc;
+    margin-bottom: 10px;
+}
+
+.subtitle {
+    font-size: 0.7rem;
+    color: #ccc;
+    margin-bottom: 25px;
 }
 
 #game-container {
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 90vh;
+    height: 70vh;
 }
 
 canvas#pong {
     background: #111;
     border: 4px solid #fff;
-    border-radius: 8px;
-    box-shadow: 0 4px 32px rgba(0,0,0,0.8);
+    border-radius: 12px;
+    box-shadow: 0 0 25px #00ffccaa, 0 0 40px #00ffcc33;
+    transition: box-shadow 0.3s ease-in-out;
+}
+
+canvas#pong:hover {
+    box-shadow: 0 0 40px #00ffcc, 0 0 80px #00ffccaa;
+}
+
+footer {
+    font-size: 0.6rem;
+    color: #aaa;
+    margin-top: 20px;
+}
+
+footer a {
+    color: #00ffcc;
+    text-decoration: none;
+    transition: color 0.3s;
+}
+
+footer a:hover {
+    color: #fff;
 }
